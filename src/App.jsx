@@ -513,84 +513,72 @@ const FolderManager = ({ folders, selectedFolder, onSelect, onCreate, onDelete, 
 };
 
 // Tutorial Viewer (for embed)
-const TutorialViewer = ({ tutorial, autoplay = false }) => {
+// ============================================
+// Tutorial Viewer (for embed)
+// ============================================
+const TutorialViewer = ({ tutorial }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(autoplay);
-  const timerRef = useRef(null);
-
+  const [isPlaying, setIsPlaying] = useState(false);
+  
   const slides = tutorial?.slides || [];
-  const currentSlideData = slides[currentSlide];
+  const current = slides[currentSlide];
 
   useEffect(() => {
-    if (isPlaying && currentSlideData) {
-      timerRef.current = setTimeout(() => {
-        if (currentSlide < slides.length - 1) {
-          setCurrentSlide(prev => prev + 1);
-        } else {
-          setIsPlaying(false);
-        }
-      }, (currentSlideData.duration || 5) * 1000);
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [isPlaying, currentSlide, currentSlideData, slides.length]);
+    if (!isPlaying || !current) return;
+    const timer = setTimeout(() => {
+      if (currentSlide < slides.length - 1) {
+        setCurrentSlide(prev => prev + 1);
+      } else {
+        setIsPlaying(false);
+      }
+    }, (current.duration || 5) * 1000);
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentSlide, current, slides.length]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKey = (e) => {
       if (e.key === 'ArrowLeft') setCurrentSlide(prev => Math.max(0, prev - 1));
       if (e.key === 'ArrowRight') setCurrentSlide(prev => Math.min(slides.length - 1, prev + 1));
-      if (e.key === ' ') { e.preventDefault(); setIsPlaying(prev => !prev); }
+      if (e.key === ' ') { e.preventDefault(); setIsPlaying(p => !p); }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [slides.length]);
 
   if (!tutorial) return <div className="p-8 text-center">ไม่พบคู่มือ</div>;
 
   return (
-    <div className="embed-viewer">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 bg-slate-900 text-white">
+      <div className="px-4 py-3 bg-slate-800 text-white shrink-0">
         <h2 className="font-semibold">{tutorial.title}</h2>
       </div>
-
-      {/* Image */}
-      <div className="relative bg-slate-100">
-        {currentSlideData && (
-          <>
-            <img 
-              src={currentSlideData.imageUrl} 
-              alt={`Slide ${currentSlide + 1}`}
-              className="slide-image"
-            />
-            {currentSlideData.hotspots?.map((hotspot, idx) => (
-              <div 
-                key={idx}
-                className="hotspot"
-                style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
-                title={hotspot.text}
-              />
-            ))}
-          </>
+      
+      {/* Image Container */}
+      <div className="flex-1 flex items-center justify-center bg-gray-900 overflow-hidden p-4">
+        {current && (
+          <img 
+            src={current.imageUrl} 
+            alt="" 
+            className="max-w-full max-h-[calc(100vh-200px)] object-contain"
+          />
         )}
       </div>
-
+      
       {/* Caption */}
-      {currentSlideData?.caption && (
-        <div className="slide-caption">
-          <p>{currentSlideData.caption}</p>
+      {current?.caption && (
+        <div className="px-4 py-3 bg-gray-800 text-white shrink-0">
+          <p>{current.caption}</p>
         </div>
       )}
-
+      
       {/* Progress */}
-      <div className="progress-bar">
-        <div 
-          className="progress-bar-fill" 
-          style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
-        />
+      <div className="progress-bar shrink-0">
+        <div className="progress-bar-fill" style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }} />
       </div>
-
+      
       {/* Controls */}
-      <div className="controls">
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-800 text-white shrink-0">
         <button 
           onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
           disabled={currentSlide === 0}
@@ -600,17 +588,12 @@ const TutorialViewer = ({ tutorial, autoplay = false }) => {
         </button>
         
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="p-2 hover:bg-white/10 rounded"
-          >
+          <button onClick={() => setIsPlaying(!isPlaying)} className="p-2 hover:bg-white/10 rounded">
             {isPlaying ? <Icons.Pause /> : <Icons.Play />}
           </button>
-          <span className="text-sm">
-            {currentSlide + 1} / {slides.length}
-          </span>
+          <span className="text-sm">{currentSlide + 1} / {slides.length}</span>
         </div>
-
+        
         <button 
           onClick={() => setCurrentSlide(prev => Math.min(slides.length - 1, prev + 1))}
           disabled={currentSlide === slides.length - 1}
